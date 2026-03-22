@@ -1,0 +1,181 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 0 1 * *" # monthly
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+permissions: {}
+
+env:
+  ACTIONS_CACHE_SERVICE_V2: "on"
+  SCCACHE_GHA_ENABLED: "true"
+  SCCACHE_GHA_VERSION: "1"
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          save-cache: true
+
+  checks:
+    name: Checks
+    needs: setup
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write # sccache
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Run checks
+        run: ./scripts/checks.sh
+
+  compatibility:
+    name: Compatibility
+    needs: setup
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write # sccache
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Build
+        run: ./scripts/compatibility.sh
+
+  coverage:
+    name: Coverage
+    needs: setup
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write # sccache
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Generate coverage
+        run: ./scripts/coverage.sh
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5.5.3
+        with:
+          files: codecov.json
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  docs:
+    name: Docs
+    needs: setup
+    runs-on: ubuntu-24.04
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      actions: write # sccache
+      pages: write # pages
+      id-token: write # pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Build docs
+        run: ./scripts/docs.sh
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: target/doc
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+
+  fuzz:
+    name: Fuzz
+    needs: setup
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write # sccache
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Run fuzzing
+        run: ./scripts/fuzz.sh
+
+      - name: Upload artifacts
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: fuzz-artifacts
+          path: fuzz/artifacts
+
+  benches:
+    name: Benchmarks
+    needs: setup
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write # sccache
+      id-token: write # codspeed
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Build benchmarks
+        run: ./scripts/bench-build.sh
+
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@1c8ae4843586d3ba879736b7f6b7b0c990757fab # v4.12.1
+        with:
+          mode: simulation,memory
+          run: ./scripts/bench-run.sh

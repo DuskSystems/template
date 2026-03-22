@@ -1,0 +1,19 @@
+# https://doc.rust-lang.org/cargo/reference/manifest.html
+[package]
+name = "{{ project-name }}-xtask"
+publish = false
+
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# CLI
+clap.workspace = true

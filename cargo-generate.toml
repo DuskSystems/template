@@ -1,0 +1,20 @@
+# https://cargo-generate.github.io/cargo-generate
+
+[template]
+cargo_generate_version = ">=0.23.0"
+exclude = [
+  ".github/actions/**",
+  ".github/workflows/**",
+]
+
+[placeholders.description]
+type = "string"
+prompt = "Description"
+
+[placeholders.keywords]
+type = "string"
+prompt = "Keywords"
+
+[placeholders.categories]
+type = "string"
+prompt = "Categories"

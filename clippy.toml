@@ -1,0 +1,52 @@
+# https://doc.rust-lang.org/clippy/configuration.html
+
+allow-renamed-params-for = []
+avoid-breaking-exported-api = false
+
+# Tests
+allow-dbg-in-tests = true
+allow-expect-in-tests = true
+allow-indexing-slicing-in-tests = true
+allow-panic-in-tests = true
+allow-print-in-tests = true
+allow-unwrap-in-tests = true
+
+disallowed-types = [
+  # Prefer `parking_lot`
+  "async_lock::Mutex",
+  "async_lock::RwLock",
+  "futures::lock::Mutex",
+  "std::sync::Mutex",
+  "std::sync::RwLock",
+  "tokio::sync::Mutex",
+  "tokio::sync::RwLock",
+
+  # Prefer `camino`
+  "std::path::Path",
+  "std::path::PathBuf",
+
+  # Prefer `camino-tempfile`
+  "tempfile::Builder",
+  "tempfile::NamedTempFile",
+  "tempfile::TempDir",
+  "tempfile::TempPath",
+]
+
+disallowed-methods = [
+  # Prefer `std::fs::create_dir_all`
+  "std::fs::create_dir",
+]
+
+disallowed-macros = [
+  # Prefer `core::pin::*`
+  "futures::pin_mut",
+  "futures_lite::pin",
+  "smol::pin",
+
+  # Prefer `core::future::*`
+  "futures::future::err",
+  "futures::future::ok",
+  "futures::future::pending",
+  "futures::future::ready",
+  "smol::ready",
+]

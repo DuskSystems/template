@@ -1,0 +1,25 @@
+# Rust
+target
+*.rs.bk
+
+# Insta
+*.pending-snap
+
+# Perf
+*.data
+*.data.*
+
+# Coverage
+codecov.json
+
+# Fuzz
+corpus
+artifacts
+fuzz-*.log
+
+# Nix
+result
+result-*
+
+# Dir Env
+.direnv
